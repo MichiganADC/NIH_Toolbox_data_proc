@@ -26,33 +26,50 @@ rebo <- function(x) red(bold(x))
 
 cat(
   paste0(
-    "\n",
     cybo("Recursing through "), 
     raw_path, 
     cybo(" to find"), 
     " *_Scores.csv",
     cybo(" files."),
-    "\n\n")
+    "\n")
 )
+
+temp_id_str <- "\\d{4}"
+# temp_id_str <- "1210"
 
 # Files exported from iPads
 files_bl <- 
-  list.files(path = raw_path,
-             pattern = "^C\\d{4}_BL_Scores(_Emo)?\\.csv$",
-             ignore.case = TRUE, 
-             recursive = TRUE)
+  list.files(
+    path = raw_path,
+    # pattern = str_c("C", temp_id_str, "\\/", "C", temp_id_str, "_BL_Scores(_Emo)?\\.csv$"),
+    ignore.case = TRUE, 
+    recursive = TRUE
+  ) %>% 
+  str_subset(str_c(
+    "C", temp_id_str, "\\/", "C", temp_id_str, "_BL_Scores(_Emo)?\\.csv$"
+  ))
 
 files_06 <- 
-  list.files(path = raw_path,
-             pattern = "^C\\d{4}_(06|06M|6M|M06|M6)_Scores(_Emo)?\\.csv$",
-             ignore.case = TRUE,
-             recursive = TRUE)
+  list.files(
+    path = raw_path,
+    # pattern = str_c("^C", temp_id_str, "_(06|06M|6M|M06|M6)_Scores(_Emo)?\\.csv$"),
+    ignore.case = TRUE,
+    recursive = TRUE
+  ) %>% 
+  str_subset(str_c(
+    "C", temp_id_str, "\\/", "C", temp_id_str, "_(06|06M|6M|M06|M6)_Scores(_Emo)?\\.csv$"
+  ))
 
 files_12 <- 
-  list.files(path = raw_path,
-             pattern = "^C\\d{4}_(12|12M|M12)_Scores(_Emo)?\\.csv$",
-             ignore.case = TRUE,
-             recursive = TRUE)
+  list.files(
+    path = raw_path,
+    # pattern = str_c("^C", temp_id_str,"C\\d{4}/C\\d{4}_(12|12M|M12)_Scores(_Emo)?\\.csv$"),
+    ignore.case = TRUE,
+    recursive = TRUE
+  ) %>% 
+  str_subset(str_c(
+    "C", temp_id_str, "\\/", "C", temp_id_str, "_(12|12M|M12)_Scores(_Emo)?\\.csv$"
+  ))
 
 ls_files <- list()
 
@@ -82,7 +99,7 @@ iwalk(ls_files,
 )
 
 # Loop over all exported files, rowbinding them into one df
-cat(paste0(cybo("Reading CSVs..."), "\n\n"))
+cat(paste0(cybo("Reading CSVs..."), "\n"))
 
 ls_df_tb_raw <-
   map(ls_files, function(files) {
@@ -92,6 +109,41 @@ ls_df_tb_raw <-
               cat(paste0("Reading: ", raw_path, f, "\n"))
               read_csv(file = paste0(raw_path, f),
                        col_types = cols(.default = col_character()))
+              #        col_types = cols_only(PIN = col_character(),
+              #                              DeviceID = col_character(),
+              #                              `Assessment Name` = col_character(),
+              #                              Inst = col_character(),
+              #                              RawScore = col_character(),
+              #                              Theta = col_character(),
+              #                              TScore = col_character(),
+              #                              SE = col_character(),
+              #                              ItmCnt = col_character(),
+              #                              DateFinished = col_character(),
+              # `Computed Score` = col_character(), # num
+              # `Uncorrected Standard Score` = col_character(), # int
+              # `Age-Corrected Standard Score` = col_character(), # int
+              # `Fully-Corrected T-score` = col_character(), # int
+              # `Uncorrected Standard Scores Dominant` = col_character(), # int
+              # `Age-Corrected Standard Scores Dominant` = col_character(), # int
+              # `Fully-Corrected T-scores Dominant` = col_character(), # int
+              # `Uncorrected Standard Scores Non-Dominant` = col_character(), # int
+              # `Age-Corrected Standard Scores Non-Dominant` = col_character(), # int
+              # `Fully-Corrected T-scores Non-Dominant` = col_character(), # int
+              # `Dominant Score` = col_character(), # num
+              # `Non-Dominant Score` = col_character(), # num
+              #                              Column1 = col_character(),
+              #                              Column2 = col_character(),
+              #                              Column3 = col_character(),
+              #                              Column4 = col_character(),
+              #                              Column5 = col_character(),
+              #                              Language = col_character(),
+              #                              InstrumentBreakoff = col_character(),
+              #                              InstrumentStatus2 = col_character(),
+              #                              InstrumentRCReason = col_character(),
+              #                              InstrumentRCReasonOther = col_character(),
+              #                              `App Version` = col_character(),
+              #                              `iPad Version` = col_character(),
+              #                              `Firmware Version` = col_character()))
             })
   })
 
@@ -107,7 +159,7 @@ iwalk(ls_df_tb_raw,
 #   1yyyy-mm-dd HH:MM:SS       <--(WTF iPad?)
 #     ==> yyyy-mm-dd HH:MM:SS
 
-cat(paste0(cybo("Fixing nonstandard datetime formats..."), "\n\n"))
+cat(paste0(cybo("Fixing nonstandard datetime formats..."), "\n"))
 
 ls_df_tb <-
   map(ls_df_tb_raw,
@@ -161,7 +213,7 @@ iwalk(ls_df_tb,
 
 # All the big mutates
 cat(
-  paste0(cybo("Selecting, filtering, renaming, and coercing types..."), "\n\n")
+  paste0(cybo("Selecting, filtering, renaming, and coercing types..."), "\n")
 )
 
 ls_df_tb_mut <-
@@ -324,7 +376,7 @@ ls_df_tb_mut <-
 
 # Calculate instrument `duration`s
 
-cat(paste0(cybo("Calculating instrument durations..."), "\n\n"))
+cat(paste0(cybo("Calculating instrument durations..."), "\n"))
 
 composite_instrs <- c("fluid", "cryst", "totalcomp", "totalcompchild")
 
@@ -374,17 +426,19 @@ ls_df_tb_mut_dur <-
 # |------------------------------ ----
 # | COMBINE LIST DFs              ----
 
-cat(paste0(cybo("Combining data into one data frame..."), "\n\n"))
+cat(paste0(cybo("Combining data into one data frame..."), "\n"))
 
 df_tb_comb <-
-  map_dfr(ls_df_tb_mut_dur, bind_rows)
+  map_dfr(ls_df_tb_mut_dur, bind_rows) %>% 
+  distinct() %>% 
+  ungroup()
 
 
 # |------------------------------ ----
 # | RESHAPE DF                    ----
 
 cat(
-  paste0(cybo("Reshaping combined data to match REDCap's structure..."), "\n\n")
+  paste0(cybo("Reshaping combined data to match REDCap's structure..."), "\n")
 )
 
 df_tb_long <-
@@ -407,7 +461,7 @@ df_tb_wide <-
 
 cat(paste0(cybo("Writing reshaped data to CSV as "), 
            "./PROCESSED/processed_tb_", today(), ".csv", 
-           "\n\n"))
+           "\n"))
 
 write_csv(df_tb_wide, 
           paste0("./PROCESSED/processed_tb_", today(), ".csv"),
